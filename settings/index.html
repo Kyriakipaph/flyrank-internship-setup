@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Account Settings</h1>
+    <p class="subtitle">Update your profile and preferences.</p>
+
+    <form id="settings-form" novalidate>
+      <section class="field">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          autocomplete="username"
+          aria-describedby="username-error"
+          required
+        >
+        <small class="error" id="username-error" aria-live="polite"></small>
+      </section>
+
+      <section class="field">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          autocomplete="email"
+          aria-describedby="email-error"
+          required
+        >
+        <small class="error" id="email-error" aria-live="polite"></small>
+      </section>
+
+      <section class="field">
+        <label for="age">Age</label>
+        <input
+          type="number"
+          id="age"
+          name="age"
+          min="13"
+          max="120"
+          aria-describedby="age-error"
+          required
+        >
+        <small class="error" id="age-error" aria-live="polite"></small>
+      </section>
+
+      <section class="field">
+        <label for="password">New password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          autocomplete="new-password"
+          aria-describedby="password-error password-hint"
+        >
+        <small class="hint" id="password-hint">
+          Leave blank to keep your current password. Minimum 8 characters, 1 letter and 1 number.
+        </small>
+        <small class="error" id="password-error" aria-live="polite"></small>
+      </section>
+
+      <section class="field">
+        <label for="confirm-password">Confirm new password</label>
+        <input
+          type="password"
+          id="confirm-password"
+          name="confirmPassword"
+          autocomplete="new-password"
+          aria-describedby="confirm-password-error"
+        >
+        <small class="error" id="confirm-password-error" aria-live="polite"></small>
+      </section>
+
+      <section class="field">
+        <label for="theme">Theme</label>
+        <select id="theme" name="theme" required>
+          <option value="">Choose a theme…</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="system">Match system</option>
+        </select>
+        <small class="error" id="theme-error" aria-live="polite"></small>
+      </section>
+
+      <section class="field checkbox">
+        <label>
+          <input type="checkbox" id="newsletter" name="newsletter">
+          Subscribe to the monthly newsletter
+        </label>
+      </section>
+
+      <div class="actions">
+        <button type="reset" class="btn btn-secondary">Reset</button>
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </div>
+
+      <p id="form-status" class="form-status" aria-live="polite"></p>
+    </form>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

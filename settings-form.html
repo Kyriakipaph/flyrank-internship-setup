@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Settings</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --border: #d0d7de;
+    --accent: #2563eb;
+    --error: #d1242f;
+    --success: #1a7f37;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+    margin: 0;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  h1 { margin: 0 0 6px; font-size: 22px; }
+  .subtitle { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+  .field { margin-bottom: 18px; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 9px 11px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  }
+  input.invalid { border-color: var(--error); }
+  input.invalid:focus { box-shadow: 0 0 0 3px rgba(209,36,47,0.15); }
+  .msg {
+    display: block;
+    font-size: 12px;
+    margin-top: 5px;
+    min-height: 14px;
+    color: var(--error);
+  }
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+  .toggle span { font-size: 14px; }
+  button {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  button:disabled { background: #9ca3af; cursor: not-allowed; }
+  button:not(:disabled):hover { background: #1d4ed8; }
+  .banner {
+    margin-top: 14px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+  }
+  .banner.show { display: block; }
+  .banner.success { background: #dcfce7; color: var(--success); }
+</style>
+</head>
+<body>
+  <form class="card" id="settingsForm" novalidate>
+    <h1>Account settings</h1>
+    <p class="subtitle">Update your profile and preferences.</p>
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username">
+      <small class="msg" data-for="username"></small>
+    </div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email">
+      <small class="msg" data-for="email"></small>
+    </div>
+
+    <div class="field">
+      <label for="password">New password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password">
+      <small class="msg" data-for="password"></small>
+    </div>
+
+    <div class="field">
+      <label for="confirm">Confirm password</label>
+      <input id="confirm" name="confirm" type="password" autocomplete="new-password">
+      <small class="msg" data-for="confirm"></small>
+    </div>
+
+    <div class="toggle">
+      <span>Email notifications</span>
+      <input id="notifications" type="checkbox" checked>
+    </div>
+
+    <button type="submit" id="submitBtn">Save changes</button>
+    <div class="banner success" id="banner">Settings saved.</div>
+  </form>
+
+<script>
+  const rules = {
+    username: v => {
+      if (!v) return "Username is required.";
+      if (v.length < 3) return "At least 3 characters.";
+      if (!/^[a-zA-Z0-9_]+$/.test(v)) return "Letters, numbers, and _ only.";
+      return "";
+    },
+    email: v => {
+      if (!v) return "Email is required.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email.";
+      return "";
+    },
+    password: v => {
+      if (!v) return "Password is required.";
+      if (v.length < 8) return "At least 8 characters.";
+      if (!/[A-Z]/.test(v)) return "Include an uppercase letter.";
+      if (!/[0-9]/.test(v)) return "Include a number.";
+      return "";
+    },
+    confirm: (v, form) => {
+      if (!v) return "Please confirm your password.";
+      if (v !== form.password.value) return "Passwords do not match.";
+      return "";
+    }
+  };
+
+  const form = document.getElementById("settingsForm");
+  const banner = document.getElementById("banner");
+  const submitBtn = document.getElementById("submitBtn");
+
+  function showError(name, message) {
+    const input = form.elements[name];
+    const msg = form.querySelector(`.msg[data-for="${name}"]`);
+    input.classList.toggle("invalid", !!message);
+    msg.textContent = message;
+  }
+
+  function validateField(name) {
+    const value = form.elements[name].value.trim();
+    const error = rules[name](value, form);
+    showError(name, error);
+    return !error;
+  }
+
+  Object.keys(rules).forEach(name => {
+    const input = form.elements[name];
+    input.addEventListener("blur", () => validateField(name));
+    input.addEventListener("input", () => {
+      if (input.classList.contains("invalid")) validateField(name);
+      if (name === "password") {
+        if (form.confirm.value) validateField("confirm");
+      }
+    });
+  });
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const allValid = Object.keys(rules).map(validateField).every(Boolean);
+    if (!allValid) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving...";
+    setTimeout(() => {
+      banner.classList.add("show");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Save changes";
+      setTimeout(() => banner.classList.remove("show"), 2500);
+    }, 500);
+  });
+</script>
+</body>
+</html>
