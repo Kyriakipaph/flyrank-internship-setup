@@ -1,0 +1,142 @@
+:root {
+  --page-bg: #eaf3ff;
+  --accent: #ff7a59;      /* warm coral — matches the page but pops for the greeting */
+  --label: #0b2a5b;       /* dark blue */
+  --field-border: #c3d4ee;
+  --field-focus: #2f6bd8;
+  --error: #b3261e;
+  --success-bg: #e6f7ec;
+  --success-fg: #16794c;
+  --white: #ffffff;
+  --shadow: 0 6px 24px rgba(11, 42, 91, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(180deg, var(--page-bg) 0%, #ffffff 100%);
+  color: #1a1a1a;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+}
+
+.greeting {
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  font-weight: 800;
+  color: var(--accent);
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #4a5b7a;
+  margin: 0 0 32px;
+}
+
+.card {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+}
+
+.field {
+  margin-bottom: 20px;
+}
+
+.field label {
+  display: block;
+  font-weight: 600;
+  color: var(--label);
+  margin: 0 0 8px 18px;
+  font-size: 0.95rem;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 14px 22px;
+  font-size: 1rem;
+  border: 2px solid var(--field-border);
+  border-radius: 999px;   /* long oval */
+  background: var(--white);
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.field select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%230b2a5b' d='M6 8L0 0h12z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 22px center;
+  padding-right: 44px;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--field-focus);
+  box-shadow: 0 0 0 4px rgba(47, 107, 216, 0.15);
+}
+
+.field.invalid input,
+.field.invalid select {
+  border-color: var(--error);
+}
+
+.error-msg {
+  display: block;
+  min-height: 1.1em;
+  color: var(--error);
+  font-size: 0.85rem;
+  margin: 6px 0 0 18px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px 22px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--white);
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.05s ease;
+  margin-top: 8px;
+}
+
+.submit-btn:hover:not(:disabled) { opacity: 0.92; }
+.submit-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.submit-btn:disabled {
+  background: #b7c3d6;
+  cursor: not-allowed;
+}
+
+.success {
+  margin-top: 20px;
+  padding: 14px 22px;
+  border-radius: 16px;
+  background: var(--success-bg);
+  color: var(--success-fg);
+  font-weight: 600;
+  border: 1px solid #b7e4c8;
+}
+
+.success[hidden] { display: none; }
+
+@media (max-width: 480px) {
+  .card { padding: 22px; border-radius: 20px; }
+  .field label { margin-left: 14px; }
+  .error-msg { margin-left: 14px; }
+}

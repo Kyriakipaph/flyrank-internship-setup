@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page">
+    <h1 class="greeting">Hello there!</h1>
+    <p class="subtitle">Update your account settings below.</p>
+
+    <section class="card">
+      <form id="settingsForm" novalidate>
+        <div class="field" data-field="fullName">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" name="fullName" type="text" autocomplete="name" />
+          <span class="error-msg" id="err-fullName"></span>
+        </div>
+
+        <div class="field" data-field="email">
+          <label for="email">Email Address</label>
+          <input id="email" name="email" type="email" autocomplete="email" />
+          <span class="error-msg" id="err-email"></span>
+        </div>
+
+        <div class="field" data-field="notification">
+          <label for="notification">Notification Preference</label>
+          <select id="notification" name="notification">
+            <option value="">Select a preference...</option>
+            <option value="Daily">Daily</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Never">Never</option>
+          </select>
+          <span class="error-msg" id="err-notification"></span>
+        </div>
+
+        <div class="field" data-field="password">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" />
+          <span class="error-msg" id="err-password"></span>
+        </div>
+
+        <div class="field" data-field="confirmPassword">
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" />
+          <span class="error-msg" id="err-confirmPassword"></span>
+        </div>
+
+        <button id="submitBtn" class="submit-btn" type="submit" disabled>Save Settings</button>
+      </form>
+
+      <div id="success" class="success" hidden>Settings saved successfully!</div>
+    </section>
+  </main>
+
+  <script src="validators.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
