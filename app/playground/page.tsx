@@ -1,5 +1,6 @@
 import Disclosure from './components/Disclosure';
 import Tabs from './components/Tabs';
+import ModalDemo from './ModalDemo';
 
 export default function PlaygroundPage() {
   return (
@@ -19,6 +20,11 @@ export default function PlaygroundPage() {
             The longer you stay focused, the taller the cake gets.
           </p>
         </Disclosure>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Modal</h2>
+        <ModalDemo />
       </section>
 
       <section className="flex flex-col gap-3">
