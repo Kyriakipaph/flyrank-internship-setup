@@ -48,6 +48,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </li>
               <li>
                 <Link
+                  href="/playground"
+                  className="text-zinc-500 hover:underline dark:text-zinc-400"
+                >
+                  Playground
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/health"
                   className="text-zinc-500 hover:underline dark:text-zinc-400"
                 >
