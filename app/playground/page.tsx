@@ -1,4 +1,5 @@
 import Disclosure from './components/Disclosure';
+import Tabs from './components/Tabs';
 
 export default function PlaygroundPage() {
   return (
@@ -18,6 +19,38 @@ export default function PlaygroundPage() {
             The longer you stay focused, the taller the cake gets.
           </p>
         </Disclosure>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Tabs</h2>
+        <Tabs
+          items={[
+            {
+              label: 'Overview',
+              content: (
+                <p className="text-zinc-700 dark:text-zinc-300">
+                  Set a task, start the timer, and watch your cake rise.
+                </p>
+              ),
+            },
+            {
+              label: 'Rules',
+              content: (
+                <p className="text-zinc-700 dark:text-zinc-300">
+                  Give up early and the cake gets smashed.
+                </p>
+              ),
+            },
+            {
+              label: 'History',
+              content: (
+                <p className="text-zinc-700 dark:text-zinc-300">
+                  Every completed cake is saved in your kitchen.
+                </p>
+              ),
+            },
+          ]}
+        />
       </section>
     </div>
   );
