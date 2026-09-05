@@ -1,6 +1,7 @@
 import Disclosure from './components/Disclosure';
 import Tabs from './components/Tabs';
 import ModalDemo from './ModalDemo';
+import { ShadcnDialogDemo, ShadcnTabsDemo } from './ShadcnDemo';
 
 export default function PlaygroundPage() {
   return (
@@ -25,6 +26,11 @@ export default function PlaygroundPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-xl font-semibold">Modal</h2>
         <ModalDemo />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Modal (shadcn)</h2>
+        <ShadcnDialogDemo />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -57,6 +63,11 @@ export default function PlaygroundPage() {
             },
           ]}
         />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Tabs (shadcn)</h2>
+        <ShadcnTabsDemo />
       </section>
     </div>
   );
