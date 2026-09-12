@@ -1,6 +1,5 @@
-const SECONDS_PER_TIER = 5; // TESTING: 5s per tier
 const MAX_TIERS = 6;
-const SECONDS_PER_DECORATION = 3; // TESTING: 3s per decoration
+const SECONDS_PER_DECORATION = 30; // TESTING: 30s per decoration after target
 const MAX_DECORATIONS = 2;
 
 const TIER_HEIGHT = 42;
@@ -8,45 +7,53 @@ const BASE_WIDTH = 150;
 const WIDTH_STEP = 20;
 const PLATE_Y = 310;
 
-// Pastel rainbow — colorful but shared saturation keeps it cohesive.
 const TIER_COLORS = [
-  { body: '#fbcfe8', icing: '#ec4899', darker: '#f9a8d4' }, // pink
-  { body: '#fed7aa', icing: '#f97316', darker: '#fdba74' }, // orange
-  { body: '#fde68a', icing: '#eab308', darker: '#fcd34d' }, // yellow
-  { body: '#bbf7d0', icing: '#22c55e', darker: '#86efac' }, // green
-  { body: '#bae6fd', icing: '#0ea5e9', darker: '#7dd3fc' }, // blue
-  { body: '#ddd6fe', icing: '#8b5cf6', darker: '#c4b5fd' }, // purple
+  { body: '#fbcfe8', icing: '#ec4899', darker: '#f9a8d4' },
+  { body: '#fed7aa', icing: '#f97316', darker: '#fdba74' },
+  { body: '#fde68a', icing: '#eab308', darker: '#fcd34d' },
+  { body: '#bbf7d0', icing: '#22c55e', darker: '#86efac' },
+  { body: '#bae6fd', icing: '#0ea5e9', darker: '#7dd3fc' },
+  { body: '#ddd6fe', icing: '#8b5cf6', darker: '#c4b5fd' },
 ];
+
+function minutesToCakeTiers(minutes: number): number {
+  return Math.min(MAX_TIERS, Math.max(1, Math.round(minutes / 10)));
+}
 
 type CakeProps = {
   elapsedSeconds: number;
+  targetMinutes: number;
   showBaking?: boolean;
 };
 
-export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
-  const tierCount = Math.min(
-    Math.floor(elapsedSeconds / SECONDS_PER_TIER),
-    MAX_TIERS,
-  );
+export default function Cake({
+  elapsedSeconds,
+  targetMinutes,
+  showBaking = true,
+}: CakeProps) {
+  const cakeTargetTiers = minutesToCakeTiers(targetMinutes);
+  const targetSeconds = targetMinutes * 60;
+  const secondsPerTier = targetSeconds / cakeTargetTiers;
 
+  const rawTierCount = Math.floor(elapsedSeconds / secondsPerTier);
+  const tierCount = Math.min(rawTierCount, cakeTargetTiers);
+
+  // Past target → decorations
   const decorationCount =
-    tierCount === MAX_TIERS
+    tierCount === cakeTargetTiers
       ? Math.min(
           Math.floor(
-            (elapsedSeconds - MAX_TIERS * SECONDS_PER_TIER) /
-              SECONDS_PER_DECORATION,
+            (elapsedSeconds - targetSeconds) / SECONDS_PER_DECORATION,
           ),
           MAX_DECORATIONS,
         )
       : 0;
 
-  // Bowl only shows while the FIRST tier is being made.
   const bowlVisible = showBaking && tierCount === 0;
-  // Bowl bottom sits ON the plate surface (PLATE_Y) so nothing floats.
   const bowlBottom = PLATE_Y;
   const bowlTop = bowlBottom - 22;
   const ingredientY = bowlTop + 8;
-  const crackY = bowlTop - 5; // egg cracks above the bowl
+  const crackY = bowlTop - 5;
 
   const label =
     tierCount === 0
@@ -62,14 +69,14 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
     >
       {/* twinkling stars scattered around the cake */}
       {[
-        { x: 25,  y: 90 },
+        { x: 25, y: 90 },
         { x: 175, y: 100 },
-        { x: 15,  y: 180 },
+        { x: 15, y: 180 },
         { x: 185, y: 200 },
-        { x: 35,  y: 260 },
+        { x: 35, y: 260 },
         { x: 165, y: 275 },
         { x: 100, y: 40 },
-        { x: 60,  y: 30 },
+        { x: 60, y: 30 },
         { x: 145, y: 50 },
       ].map((s, i) => (
         <path
@@ -84,180 +91,162 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
       <ellipse cx="100" cy={PLATE_Y + 8} rx="95" ry="7" fill="#94a3b8" />
       <ellipse cx="100" cy={PLATE_Y + 5} rx="93" ry="5" fill="#e5e7eb" />
 
-
-      {/* wrap all tiers so the whole stack sways together */}
       <g className={tierCount > 0 ? 'cake-sway' : ''}>
-      {Array.from({ length: tierCount }).map((_, i) => {
-        const width = BASE_WIDTH - i * WIDTH_STEP;
-        const x = (200 - width) / 2;
-        const y = PLATE_Y - (i + 1) * TIER_HEIGHT;
-        const colors = TIER_COLORS[i % TIER_COLORS.length];
-        const hasDrips = tierCount >= i + 2;
-        const isTopTier = i === tierCount - 1;
+        {Array.from({ length: tierCount }).map((_, i) => {
+          const width = BASE_WIDTH - i * WIDTH_STEP;
+          const x = (200 - width) / 2;
+          const y = PLATE_Y - (i + 1) * TIER_HEIGHT;
+          const colors = TIER_COLORS[i % TIER_COLORS.length];
+          const hasDrips = tierCount >= i + 2;
+          const isTopTier = i === tierCount - 1;
 
-        return (
-          <g key={i} className="tier-pop">
-            {/* main body */}
-            <rect
-              x={x}
-              y={y}
-              width={width}
-              height={TIER_HEIGHT}
-              rx="6"
-              fill={colors.body}
-            />
+          return (
+            <g key={i} className="tier-pop">
+              <rect
+                x={x}
+                y={y}
+                width={width}
+                height={TIER_HEIGHT}
+                rx="6"
+                fill={colors.body}
+              />
 
-            {/* bottom shadow band for depth */}
-            <rect
-              x={x}
-              y={y + TIER_HEIGHT - 6}
-              width={width}
-              height="6"
-              rx="6"
-              fill={colors.darker}
-              opacity="0.7"
-            />
+              <rect
+                x={x}
+                y={y + TIER_HEIGHT - 6}
+                width={width}
+                height="6"
+                rx="6"
+                fill={colors.darker}
+                opacity="0.7"
+              />
 
-            {/* icing on top (main body, with idle wobble) */}
-            <ellipse
-              className="icing-wobble"
-              cx="100"
-              cy={y}
-              rx={width / 2 - 6}
-              ry="6"
-              fill={colors.icing}
-            />
+              <ellipse
+                className="icing-wobble"
+                cx="100"
+                cy={y}
+                rx={width / 2 - 6}
+                ry="6"
+                fill={colors.icing}
+              />
 
-            {/* piped icing rosettes across the top edge (each bounces, staggered) */}
-            {Array.from({ length: Math.max(3, Math.floor(width / 22)) }).map(
-              (_, k, arr) => {
-                const spacing = (width - 20) / (arr.length - 1);
-                return (
-                  <circle
-                    key={k}
-                    className="dollop-bounce"
-                    cx={x + 10 + k * spacing}
-                    cy={y - 2}
-                    r={3.5}
-                    fill={colors.icing}
-                    style={{ animationDelay: `${k * 0.15}s` }}
-                  />
-                );
-              },
-            )}
-
-            {/* rainbow sprinkles on every tier (twinkle) */}
-            {['#fbbf24', '#a78bfa', '#22c55e', '#ec4899', '#3b82f6'].map(
-              (color, k, arr) => {
-                const spacing = width / (arr.length + 1);
-                const cx = x + spacing * (k + 1);
-                const cy = y - 5;
-                const angle = (k * 40) - 60;
-                return (
-                  <rect
-                    key={`sp-${k}`}
-                    className="sprinkle-twinkle"
-                    x={cx - 2}
-                    y={cy - 0.75}
-                    width="4"
-                    height="1.5"
-                    fill={color}
-                    transform={`rotate(${angle} ${cx} ${cy})`}
-                    style={{ animationDelay: `${k * 0.2}s` }}
-                  />
-                );
-              },
-            )}
-
-            {hasDrips && (
-              <>
-                <circle cx={x + 12} cy={y + 4} r="4" fill={colors.icing} />
-                <circle
-                  cx={x + width * 0.3}
-                  cy={y + 6}
-                  r="4"
-                  fill={colors.icing}
-                />
-                <circle
-                  cx={x + width * 0.55}
-                  cy={y + 3}
-                  r="3"
-                  fill={colors.icing}
-                />
-                <circle
-                  cx={x + width * 0.75}
-                  cy={y + 7}
-                  r="4"
-                  fill={colors.icing}
-                />
-                <circle
-                  cx={x + width - 12}
-                  cy={y + 4}
-                  r="4"
-                  fill={colors.icing}
-                />
-              </>
-            )}
-
-            {/* Decoration 2: sprinkle rain — big, colorful, scattered ALL over each tier */}
-            {decorationCount >= 2 && (
-              <g className="sprinkle-shimmer">
-                {[
-                  // on the icing top
-                  { pct: 0.15, dy: -7, color: '#eab308', rot: 45 },
-                  { pct: 0.35, dy: -9, color: '#8b5cf6', rot: -30 },
-                  { pct: 0.55, dy: -8, color: '#22c55e', rot: 60 },
-                  { pct: 0.75, dy: -6, color: '#0ea5e9', rot: -45 },
-                  // on the tier body (upper half)
-                  { pct: 0.12, dy: 10, color: '#ec4899', rot: 20 },
-                  { pct: 0.28, dy: 14, color: '#f97316', rot: -50 },
-                  { pct: 0.45, dy: 12, color: '#a855f7', rot: 35 },
-                  { pct: 0.62, dy: 16, color: '#14b8a6', rot: -25 },
-                  { pct: 0.8, dy: 11, color: '#eab308', rot: 55 },
-                  // on the tier body (lower half)
-                  { pct: 0.18, dy: 28, color: '#0ea5e9', rot: -40 },
-                  { pct: 0.4, dy: 32, color: '#ec4899', rot: 15 },
-                  { pct: 0.58, dy: 26, color: '#22c55e', rot: -60 },
-                  { pct: 0.78, dy: 30, color: '#f97316', rot: 40 },
-                ].map((s, k) => {
-                  const cx = x + width * s.pct;
-                  const cy = y + s.dy;
+              {Array.from({ length: Math.max(3, Math.floor(width / 22)) }).map(
+                (_, k, arr) => {
+                  const spacing = (width - 20) / (arr.length - 1);
                   return (
-                    <rect
-                      key={`spr-${k}`}
-                      x={cx - 2.5}
-                      y={cy - 1}
-                      width="5"
-                      height="2"
-                      rx="1"
-                      fill={s.color}
-                      transform={`rotate(${s.rot} ${cx} ${cy})`}
+                    <circle
+                      key={k}
+                      className="dollop-bounce"
+                      cx={x + 10 + k * spacing}
+                      cy={y - 2}
+                      r={3.5}
+                      fill={colors.icing}
+                      style={{ animationDelay: `${k * 0.15}s` }}
                     />
                   );
-                })}
-              </g>
-            )}
+                },
+              )}
 
-            {/* Decoration 1: cherry on the top tier */}
-            {isTopTier && decorationCount >= 1 && (
-              <g className="cherry-wobble">
-                <circle cx="100" cy={y - 8} r="5" fill="#dc2626" />
-                <path
-                  d={`M 100 ${y - 13} Q 105 ${y - 20} 108 ${y - 22}`}
-                  stroke="#166534"
-                  strokeWidth="1.5"
-                  fill="none"
-                />
-              </g>
-            )}
-          </g>
-        );
-      })}
+              {['#fbbf24', '#a78bfa', '#22c55e', '#ec4899', '#3b82f6'].map(
+                (color, k, arr) => {
+                  const spacing = width / (arr.length + 1);
+                  const cx = x + spacing * (k + 1);
+                  const cy = y - 5;
+                  const angle = k * 40 - 60;
+                  return (
+                    <rect
+                      key={`sp-${k}`}
+                      className="sprinkle-twinkle"
+                      x={cx - 2}
+                      y={cy - 0.75}
+                      width="4"
+                      height="1.5"
+                      fill={color}
+                      transform={`rotate(${angle} ${cx} ${cy})`}
+                      style={{ animationDelay: `${k * 0.2}s` }}
+                    />
+                  );
+                },
+              )}
+
+              {hasDrips && (
+                <>
+                  <circle cx={x + 12} cy={y + 4} r="4" fill={colors.icing} />
+                  <circle
+                    cx={x + width * 0.3}
+                    cy={y + 6}
+                    r="4"
+                    fill={colors.icing}
+                  />
+                  <circle
+                    cx={x + width * 0.55}
+                    cy={y + 3}
+                    r="3"
+                    fill={colors.icing}
+                  />
+                  <circle
+                    cx={x + width * 0.75}
+                    cy={y + 7}
+                    r="4"
+                    fill={colors.icing}
+                  />
+                  <circle
+                    cx={x + width - 12}
+                    cy={y + 4}
+                    r="4"
+                    fill={colors.icing}
+                  />
+                </>
+              )}
+
+              {/* Decoration 2: extra sprinkles */}
+              {decorationCount >= 2 && (
+                <g className="sprinkle-shimmer">
+                  {[
+                    { pct: 0.15, dy: -7, color: '#eab308', rot: 45 },
+                    { pct: 0.35, dy: -9, color: '#8b5cf6', rot: -30 },
+                    { pct: 0.55, dy: -8, color: '#22c55e', rot: 60 },
+                    { pct: 0.75, dy: -6, color: '#0ea5e9', rot: -45 },
+                    { pct: 0.28, dy: 14, color: '#f97316', rot: -50 },
+                    { pct: 0.62, dy: 16, color: '#14b8a6', rot: -25 },
+                  ].map((s, k) => {
+                    const cx = x + width * s.pct;
+                    const cy = y + s.dy;
+                    return (
+                      <rect
+                        key={`spr-${k}`}
+                        x={cx - 2.5}
+                        y={cy - 1}
+                        width="5"
+                        height="2"
+                        rx="1"
+                        fill={s.color}
+                        transform={`rotate(${s.rot} ${cx} ${cy})`}
+                      />
+                    );
+                  })}
+                </g>
+              )}
+
+              {/* Decoration 1: cherry on top */}
+              {isTopTier && decorationCount >= 1 && (
+                <g className="cherry-wobble">
+                  <circle cx="100" cy={y - 8} r="5" fill="#dc2626" />
+                  <path
+                    d={`M 100 ${y - 13} Q 105 ${y - 20} 108 ${y - 22}`}
+                    stroke="#166534"
+                    strokeWidth="1.5"
+                    fill="none"
+                  />
+                </g>
+              )}
+            </g>
+          );
+        })}
       </g>
 
       {bowlVisible && (
         <g>
-          {/* bowl */}
           <path
             d={`M 75 ${bowlTop}
                 Q 78 ${bowlBottom} 100 ${bowlBottom}
@@ -268,7 +257,6 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
           />
           <ellipse cx="100" cy={bowlTop} rx="25" ry="3" fill="#cbd5e1" />
 
-          {/* batter accumulating */}
           <ellipse
             className="ing-batter"
             cx="100"
@@ -278,7 +266,6 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
             fill="#fef3c7"
           />
 
-          {/* flour bag tilts from top-left */}
           <g className="ing-flour">
             <rect
               x="88"
@@ -301,14 +288,12 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
             </text>
           </g>
 
-          {/* flour dust puff */}
           <g className="ing-dust">
             <circle cx="98" cy={ingredientY} r="4" fill="#fafafa" />
             <circle cx="103" cy={ingredientY - 1} r="3" fill="#fafafa" />
             <circle cx="94" cy={ingredientY + 1} r="3" fill="#fafafa" />
           </g>
 
-          {/* WHOLE egg falls to ABOVE the bowl */}
           <g className="ing-egg-whole">
             <ellipse
               cx="100"
@@ -321,7 +306,6 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
             />
           </g>
 
-          {/* LEFT shell half — cracks above bowl */}
           <g className="ing-shell-left">
             <path
               d={`M 100 ${crackY - 6}
@@ -333,7 +317,6 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
             />
           </g>
 
-          {/* RIGHT shell half */}
           <g className="ing-shell-right">
             <path
               d={`M 100 ${crackY - 6}
@@ -345,19 +328,16 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
             />
           </g>
 
-          {/* Yolk falls from crack point down into the bowl */}
           <g className="ing-yolk">
             <circle cx="100" cy={crackY} r="2.5" fill="#f59e0b" />
           </g>
 
-          {/* Splash appears INSIDE the bowl once the yolk lands */}
           <g className="ing-splash">
             <circle cx="94" cy={bowlTop + 8} r="1.5" fill="#fef9c3" />
             <circle cx="106" cy={bowlTop + 8} r="1.5" fill="#fef9c3" />
             <circle cx="100" cy={bowlTop + 5} r="1" fill="#fef9c3" />
           </g>
 
-          {/* Butter block slides in from top-right */}
           <g className="ing-butter">
             <rect
               x="94"
@@ -379,7 +359,6 @@ export default function Cake({ elapsedSeconds, showBaking = true }: CakeProps) {
             />
           </g>
 
-          {/* Whisk descends and stirs */}
           <g className="ing-whisk-fade">
             <g className="ing-whisk-stir">
               <line
