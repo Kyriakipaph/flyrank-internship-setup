@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Playfair_Display, Caveat } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import FocusMiniIndicator from "@/components/tierup/FocusMiniIndicator";
+import BottomNav from "@/components/tierup/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,10 +79,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </ul>
             </nav>
           </header>
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-8 sm:py-14">
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-8 sm:px-8 sm:py-14 md:pb-14">
             {children}
           </main>
           <FocusMiniIndicator />
+          <BottomNav />
         </Providers>
       </body>
     </html>

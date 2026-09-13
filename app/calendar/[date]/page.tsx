@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Sun, Clock, Sparkles, Leaf } from 'lucide-react';
+import { Sun, Clock, Sparkles, Leaf, Plus, ArrowLeft } from 'lucide-react';
 import { createTask, deleteTask, getTasks, type Task } from '@/lib/tasks';
 import { getCategory, type CategoryId } from '@/lib/categories';
 import CategoryPicker from '@/components/tierup/CategoryPicker';
@@ -57,6 +57,7 @@ export default function CalendarDayPage() {
   const [newTime, setNewTime] = useState('');
   const [newCategory, setNewCategory] = useState<CategoryId>('other');
   const [adding, setAdding] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -111,6 +112,7 @@ export default function CalendarDayPage() {
       setNewName('');
       setNewTime('');
       setNewCategory('other');
+      setShowAddForm(false);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add task.');
@@ -136,8 +138,8 @@ export default function CalendarDayPage() {
   const encouragement = encouragements[day.getDate() % encouragements.length];
 
   return (
-    <div className="relative flex flex-col gap-8 py-4">
-      {/* handwritten flourish top-right */}
+    <div className="relative mx-auto flex max-w-3xl flex-col gap-8 py-4">
+      {/* handwritten flourish */}
       <span
         className="pointer-events-none absolute -top-1 right-2 hidden rotate-[8deg] text-3xl sm:right-4 sm:block"
         style={{ fontFamily: 'var(--font-caveat)', color: 'var(--accent)' }}
@@ -145,22 +147,23 @@ export default function CalendarDayPage() {
         {encouragement}
       </span>
 
-      <header className="flex flex-col gap-2">
+      <header className="flex flex-col gap-3">
         <Link
           href="/calendar"
-          className="w-fit text-xs hover:underline"
+          className="inline-flex w-fit items-center gap-1.5 text-xs font-medium uppercase tracking-wider hover:underline"
           style={{ color: 'var(--ink-muted)' }}
         >
-          ← Back to calendar
+          <ArrowLeft size={12} />
+          Calendar
         </Link>
         <h1
-          className="text-4xl font-medium leading-none tracking-tight text-stone-900 sm:text-6xl"
-          style={{ fontFamily: 'var(--font-playfair), serif' }}
+          className="text-5xl font-medium leading-none tracking-tight sm:text-6xl"
+          style={{ fontFamily: 'var(--font-playfair), serif', color: 'var(--ink)' }}
         >
           {formatFullDate(day)}
         </h1>
         <p
-          className="mt-2 text-xs font-medium uppercase tracking-[0.25em]"
+          className="text-xs font-medium uppercase tracking-[0.25em]"
           style={{ color: 'var(--ink-muted)' }}
         >
           {isToday
@@ -176,104 +179,61 @@ export default function CalendarDayPage() {
 
       {!loading && (
         <>
-          {/* Quick-add form */}
-          <form
-            onSubmit={handleAdd}
-            className="flex flex-col gap-5 rounded-3xl border bg-white/80 p-5 shadow-sm backdrop-blur sm:p-6"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} style={{ color: 'var(--accent)' }} />
-              <label
-                htmlFor="quick-name"
-                className="text-base font-medium text-stone-900"
-                style={{ fontFamily: 'var(--font-playfair), serif' }}
-              >
-                Add something for this day
-              </label>
-            </div>
-
-            <div
-              className="flex items-center gap-3 rounded-full border px-5 py-3"
-              style={{
-                borderColor: 'var(--border)',
-                backgroundColor: 'rgba(255,255,255,0.6)',
-              }}
-            >
-              <Sun size={16} style={{ color: 'var(--gold)' }} className="shrink-0" />
-              <input
-                id="quick-name"
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g., Doctor appointment"
-                className="flex-1 border-0 bg-transparent text-sm placeholder:text-stone-400 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-              <div className="flex flex-1 flex-col gap-2">
-                <p
-                  className="text-sm font-medium text-stone-900"
-                  style={{ fontFamily: 'var(--font-playfair), serif' }}
-                >
-                  Category
-                </p>
-                <CategoryPicker value={newCategory} onChange={setNewCategory} />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="quick-time"
-                  className="flex items-center gap-1.5 text-sm font-medium text-stone-900"
-                  style={{ fontFamily: 'var(--font-playfair), serif' }}
-                >
-                  Time
-                  <span className="text-xs italic text-stone-500">optional</span>
-                </label>
-                <div
-                  className="flex items-center gap-2 rounded-full border px-4 py-2"
-                  style={{ borderColor: 'var(--border)', backgroundColor: 'rgba(255,255,255,0.6)' }}
-                >
-                  <Clock size={14} style={{ color: 'var(--ink-muted)' }} />
-                  <input
-                    id="quick-time"
-                    type="time"
-                    value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    className="border-0 bg-transparent text-sm focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={!newName.trim() || adding}
-              className="self-end rounded-full px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: 'var(--accent)' }}
-            >
-              {adding ? 'Adding…' : '+ Add to this day'}
-            </button>
-          </form>
-
-          {/* Task list for the day */}
+          {/* TASK LIST FIRST — dominant */}
           <section className="flex flex-col gap-3">
-            <h2
-              className="text-xs font-semibold uppercase tracking-[0.25em]"
-              style={{ color: 'var(--ink-muted)' }}
-            >
-              On this day
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2
+                className="text-xs font-semibold uppercase tracking-[0.25em]"
+                style={{ color: 'var(--ink-muted)' }}
+              >
+                On this day · {dayTasks.length}
+              </h2>
+              {dayTasks.length > 0 && !showAddForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  <Plus size={12} strokeWidth={2.5} />
+                  Add
+                </button>
+              )}
+            </div>
+
             {dayTasks.length === 0 ? (
               <div
-                className="flex flex-col items-center gap-3 rounded-2xl border border-dashed bg-white/50 px-6 py-10 text-center"
-                style={{ borderColor: 'var(--border-strong)' }}
+                className="flex flex-col items-center gap-4 rounded-3xl border bg-white/80 px-6 py-14 text-center shadow-sm"
+                style={{ borderColor: 'var(--border)' }}
               >
-                <Leaf size={22} style={{ color: 'var(--accent)' }} />
-                <p className="text-sm italic" style={{ color: 'var(--ink-muted)' }}>
-                  Nothing yet. Use the form above to add something.
-                </p>
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: 'var(--accent-soft)' }}
+                >
+                  <Leaf size={26} strokeWidth={1.6} style={{ color: 'var(--accent)' }} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <h3
+                    className="text-xl italic sm:text-2xl"
+                    style={{ fontFamily: 'var(--font-playfair), serif', color: 'var(--ink)' }}
+                  >
+                    Nothing scheduled
+                  </h3>
+                  <p className="max-w-sm text-sm" style={{ color: 'var(--ink-muted)' }}>
+                    A clear day. Add something to focus on if you&apos;d like.
+                  </p>
+                </div>
+                {!showAddForm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(true)}
+                    className="mt-1 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-white shadow-sm hover:brightness-110"
+                    style={{ backgroundColor: 'var(--accent)' }}
+                  >
+                    <Plus size={16} strokeWidth={2.5} />
+                    Add something for this day
+                  </button>
+                )}
               </div>
             ) : (
               <ul className="flex flex-col gap-2">
@@ -287,12 +247,12 @@ export default function CalendarDayPage() {
                       style={{ borderColor: 'var(--border)' }}
                     >
                       <span
-                        className="h-10 w-1 shrink-0 rounded-full"
+                        className="h-12 w-1 shrink-0 rounded-full"
                         style={{ backgroundColor: cat.color }}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-stone-900">
+                          <span className="text-base font-medium text-stone-900">
                             {t.name}
                           </span>
                           <span
@@ -345,6 +305,97 @@ export default function CalendarDayPage() {
               </ul>
             )}
           </section>
+
+          {/* ADD FORM — SECONDARY, appears when requested */}
+          {showAddForm && (
+            <form
+              onSubmit={handleAdd}
+              className="flex flex-col gap-5 rounded-3xl border bg-white/80 p-5 shadow-sm backdrop-blur sm:p-6"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} style={{ color: 'var(--accent)' }} />
+                <label
+                  htmlFor="quick-name"
+                  className="text-base font-medium text-stone-900"
+                  style={{ fontFamily: 'var(--font-playfair), serif' }}
+                >
+                  Add something for this day
+                </label>
+              </div>
+
+              <div
+                className="flex items-center gap-3 rounded-full border px-5 py-3"
+                style={{ borderColor: 'var(--border)', backgroundColor: 'rgba(255,255,255,0.6)' }}
+              >
+                <Sun size={16} style={{ color: 'var(--gold)' }} className="shrink-0" />
+                <input
+                  id="quick-name"
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g., Doctor appointment"
+                  autoFocus
+                  className="flex-1 border-0 bg-transparent text-sm placeholder:text-stone-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+                <div className="flex flex-1 flex-col gap-2">
+                  <p
+                    className="text-sm font-medium text-stone-900"
+                    style={{ fontFamily: 'var(--font-playfair), serif' }}
+                  >
+                    Category
+                  </p>
+                  <CategoryPicker value={newCategory} onChange={setNewCategory} />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="quick-time"
+                    className="flex items-center gap-1.5 text-sm font-medium text-stone-900"
+                    style={{ fontFamily: 'var(--font-playfair), serif' }}
+                  >
+                    Time
+                    <span className="text-xs italic text-stone-500">optional</span>
+                  </label>
+                  <div
+                    className="flex items-center gap-2 rounded-full border px-4 py-2"
+                    style={{ borderColor: 'var(--border)', backgroundColor: 'rgba(255,255,255,0.6)' }}
+                  >
+                    <Clock size={14} style={{ color: 'var(--ink-muted)' }} />
+                    <input
+                      id="quick-time"
+                      type="time"
+                      value={newTime}
+                      onChange={(e) => setNewTime(e.target.value)}
+                      className="border-0 bg-transparent text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="rounded-full border bg-white px-5 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"
+                  style={{ borderColor: 'var(--border-strong)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newName.trim() || adding}
+                  className="rounded-full px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  {adding ? 'Adding…' : '+ Add to this day'}
+                </button>
+              </div>
+            </form>
+          )}
         </>
       )}
     </div>
