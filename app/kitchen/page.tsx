@@ -144,6 +144,8 @@ function TaskCard({
         <Cake
           elapsedSeconds={task.totalSecondsFocused}
           targetMinutes={task.targetMinutes}
+          vibe={task.vibe}
+          cakeType={task.cakeType}
           showBaking={false}
         />
       </div>
@@ -161,7 +163,7 @@ function TaskCard({
         {resumable && (
           <Link
             href={`/focus?taskId=${task.id}`}
-            className="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600"
+            className="rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-xs font-medium text-white hover:brightness-110"
           >
             Continue
           </Link>

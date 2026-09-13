@@ -9,8 +9,12 @@ import {
   type Task,
 } from '@/lib/tasks';
 import CircularSlider from '@/components/tierup/CircularSlider';
-
-const MINUTES_PER_TIER = 10;
+import VibePicker from '@/components/tierup/VibePicker';
+import CakeTypePicker from '@/components/tierup/CakeTypePicker';
+import CategoryPicker from '@/components/tierup/CategoryPicker';
+import { getCategory, type CategoryId } from '@/lib/categories';
+import type { VibeId } from '@/lib/vibes';
+import type { CakeType } from '@/lib/tasks';
 
 function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -19,12 +23,31 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
 }
 
+function formatDueDate(d: Date): string {
+  const hasTime = d.getHours() !== 23 || d.getMinutes() !== 59;
+  const datePart = d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+  if (!hasTime) return datePart;
+  const timePart = d.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${datePart}, ${timePart}`;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskMinutes, setNewTaskMinutes] = useState(30);
+  const [newTaskType, setNewTaskType] = useState<CakeType>('tiered');
+  const [newTaskVibe, setNewTaskVibe] = useState<VibeId>('classic');
+  const [newTaskCategory, setNewTaskCategory] = useState<CategoryId>('other');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskDueTime, setNewTaskDueTime] = useState('');
   const [adding, setAdding] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -51,9 +74,26 @@ export default function TasksPage() {
     setAdding(true);
     setError(null);
     try {
-      await createTask(name, newTaskMinutes);
+      let due: Date | null = null;
+      if (newTaskDueDate) {
+        const timePart = newTaskDueTime || '23:59';
+        due = new Date(`${newTaskDueDate}T${timePart}:00`);
+      }
+      await createTask({
+        name,
+        targetMinutes: newTaskMinutes,
+        cakeType: newTaskType,
+        vibe: newTaskVibe,
+        category: newTaskCategory,
+        dueDate: due,
+      });
       setNewTaskName('');
       setNewTaskMinutes(30);
+      setNewTaskType('tiered');
+      setNewTaskVibe('classic');
+      setNewTaskCategory('other');
+      setNewTaskDueDate('');
+      setNewTaskDueTime('');
       setShowAddForm(false);
       await load();
     } catch (err) {
@@ -78,16 +118,15 @@ export default function TasksPage() {
 
   return (
     <div className="flex flex-col gap-8 py-4">
-      {/* Header */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1
-            className="text-4xl font-semibold tracking-tight sm:text-5xl"
+            className="text-4xl font-medium tracking-tight text-stone-900 sm:text-5xl"
             style={{ fontFamily: 'var(--font-playfair), serif' }}
           >
             My tasks
           </h1>
-          <p className="mt-1 text-sm text-stone-600">
+          <p className="mt-1 text-sm" style={{ color: 'var(--ink-muted)' }}>
             {unfinished.length} in progress · {completed.length} completed
           </p>
         </div>
@@ -95,24 +134,22 @@ export default function TasksPage() {
           <button
             type="button"
             onClick={() => setShowAddForm(true)}
-            className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
+            className="self-start rounded-full px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:brightness-110"
+            style={{ backgroundColor: 'var(--accent)' }}
           >
             + New task
           </button>
         )}
       </header>
 
-      {/* Add task form (collapsible) */}
       {showAddForm && (
         <form
           onSubmit={handleAdd}
-          className="flex flex-col items-center gap-5 rounded-3xl border border-rose-100 bg-white p-6 shadow-sm sm:p-8"
+          className="flex flex-col items-center gap-6 rounded-3xl border bg-white p-6 shadow-sm sm:p-8"
+          style={{ borderColor: 'var(--border)' }}
         >
           <div className="flex w-full max-w-md flex-col gap-2">
-            <label
-              htmlFor="task-name"
-              className="text-sm font-medium text-stone-700"
-            >
+            <label htmlFor="task-name" className="text-sm font-medium text-stone-700">
               What are you working on?
             </label>
             <input
@@ -122,14 +159,18 @@ export default function TasksPage() {
               onChange={(e) => setNewTaskName(e.target.value)}
               placeholder="e.g., Write chapter 3"
               autoFocus
-              className="rounded-full border border-rose-100 bg-rose-50/40 px-5 py-3 text-sm focus:border-rose-300 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+              className="rounded-full border bg-stone-50 px-5 py-3 text-sm focus:bg-white focus:outline-none focus-visible:ring-2"
+              style={{ borderColor: 'var(--border-strong)' }}
             />
           </div>
 
+          <div className="flex w-full flex-col gap-2">
+            <p className="text-sm font-medium text-stone-700">Category</p>
+            <CategoryPicker value={newTaskCategory} onChange={setNewTaskCategory} />
+          </div>
+
           <div className="flex flex-col items-center gap-2">
-            <p className="text-sm font-medium text-stone-700">
-              How long will you need?
-            </p>
+            <p className="text-sm font-medium text-stone-700">How long will you need?</p>
             <CircularSlider
               value={newTaskMinutes}
               onChange={setNewTaskMinutes}
@@ -139,18 +180,68 @@ export default function TasksPage() {
             />
           </div>
 
+          <div className="flex w-full flex-col gap-2">
+            <p className="text-sm font-medium text-stone-700">What are you baking?</p>
+            <CakeTypePicker
+              value={newTaskType}
+              onChange={setNewTaskType}
+              previewVibe={newTaskVibe}
+            />
+          </div>
+
+          <div className="flex w-full flex-col gap-2">
+            <p className="text-sm font-medium text-stone-700">Pick a vibe</p>
+            <VibePicker
+              value={newTaskVibe}
+              onChange={setNewTaskVibe}
+              cakeType={newTaskType}
+            />
+          </div>
+
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:gap-4">
+            <div className="flex flex-1 flex-col gap-1">
+              <label htmlFor="task-due" className="text-sm font-medium text-stone-700">
+                Due date <span className="text-xs text-stone-500">(optional)</span>
+              </label>
+              <input
+                id="task-due"
+                type="date"
+                value={newTaskDueDate}
+                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                className="rounded-full border bg-stone-50 px-5 py-2.5 text-sm focus:bg-white focus:outline-none"
+                style={{ borderColor: 'var(--border-strong)' }}
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <label htmlFor="task-time" className="text-sm font-medium text-stone-700">
+                Due time <span className="text-xs text-stone-500">(optional)</span>
+              </label>
+              <input
+                id="task-time"
+                type="time"
+                value={newTaskDueTime}
+                onChange={(e) => setNewTaskDueTime(e.target.value)}
+                disabled={!newTaskDueDate}
+                className="rounded-full border bg-stone-50 px-5 py-2.5 text-sm focus:bg-white focus:outline-none disabled:opacity-40"
+                style={{ borderColor: 'var(--border-strong)' }}
+              />
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="rounded-full border border-rose-200 bg-white px-5 py-2 text-sm font-medium text-stone-600 hover:bg-rose-50"
+              className="rounded-full border bg-white px-5 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"
+              style={{ borderColor: 'var(--border-strong)' }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!newTaskName.trim() || adding}
-              className="rounded-full bg-rose-500 px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full px-6 py-2 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110"
+              style={{ backgroundColor: 'var(--accent)' }}
             >
               {adding ? 'Adding…' : 'Add task'}
             </button>
@@ -164,11 +255,17 @@ export default function TasksPage() {
       {!loading && (
         <>
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500">
+            <h2
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--ink-muted)' }}
+            >
               In progress · {unfinished.length}
             </h2>
             {unfinished.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-rose-200 bg-white/50 px-6 py-8 text-center text-sm italic text-stone-500">
+              <p
+                className="rounded-2xl border border-dashed bg-white/50 px-6 py-8 text-center text-sm italic"
+                style={{ borderColor: 'var(--border-strong)', color: 'var(--ink-muted)' }}
+              >
                 No tasks yet. Add one to start baking.
               </p>
             ) : (
@@ -187,7 +284,10 @@ export default function TasksPage() {
 
           {completed.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500">
+              <h2
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--ink-muted)' }}
+              >
                 Completed · {completed.length}
               </h2>
               <ul className="flex flex-col gap-3">
@@ -221,28 +321,59 @@ function TaskCard({
     100,
     Math.round((task.totalSecondsFocused / targetSeconds) * 100),
   );
+  const category = getCategory(task.category);
+  const now = new Date();
+  const isOverdue =
+    task.dueDate && task.status === 'unfinished' && task.dueDate < now;
 
   return (
-    <li className="group rounded-2xl border border-rose-100 bg-white px-5 py-4 shadow-sm transition-shadow hover:shadow-md">
+    <li
+      className="group rounded-2xl border bg-white px-5 py-4 shadow-sm transition-shadow hover:shadow-md"
+      style={{ borderColor: 'var(--border)' }}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1">
-          <h3
-            className="text-lg font-semibold"
-            style={{ fontFamily: 'var(--font-playfair), serif' }}
-          >
-            {task.name}
-          </h3>
-          <p className="mt-0.5 text-xs text-stone-500">
-            {task.targetMinutes} min target ·{' '}
-            {formatDuration(task.totalSecondsFocused)} focused
-            {task.status === 'completed' && ' · ✓ done'}
-          </p>
+        <div className="flex flex-1 items-center gap-3">
+          <span
+            className="h-9 w-1 shrink-0 rounded-full"
+            style={{ backgroundColor: category.color }}
+            aria-hidden
+          />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3
+                className="text-lg font-medium"
+                style={{ fontFamily: 'var(--font-playfair), serif' }}
+              >
+                {task.name}
+              </h3>
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                style={{ backgroundColor: category.soft, color: category.color }}
+              >
+                {category.label}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs" style={{ color: 'var(--ink-muted)' }}>
+              {task.targetMinutes} min target · {formatDuration(task.totalSecondsFocused)} focused
+              {task.status === 'completed' && ' · ✓ done'}
+              {task.dueDate && (
+                <>
+                  {' · '}
+                  <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                    due {formatDueDate(task.dueDate)}
+                    {isOverdue && ' (overdue)'}
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
         </div>
         <div className="flex shrink-0 gap-2">
           {focusable && (
             <Link
               href={`/focus?taskId=${task.id}`}
-              className="rounded-full bg-rose-500 px-5 py-2 text-xs font-medium text-white shadow-sm hover:bg-rose-600"
+              className="rounded-full px-5 py-2 text-xs font-medium text-white shadow-sm hover:brightness-110"
+              style={{ backgroundColor: 'var(--accent)' }}
             >
               Focus
             </Link>
@@ -251,24 +382,26 @@ function TaskCard({
             type="button"
             onClick={onDelete}
             aria-label="Delete task"
-            className="rounded-full border border-rose-100 px-3 py-2 text-xs text-stone-500 hover:bg-rose-50 hover:text-stone-700"
+            className="rounded-full border px-3 py-2 text-xs text-stone-500 hover:bg-stone-50 hover:text-stone-700"
+            style={{ borderColor: 'var(--border-strong)' }}
           >
             ✕
           </button>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-rose-50">
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--paper-warm)' }}>
         <div
-          className={`h-full rounded-full transition-all duration-300 ${
-            task.status === 'completed'
-              ? 'bg-emerald-400'
-              : progressPct >= 100
-                ? 'bg-rose-400'
-                : 'bg-rose-400'
-          }`}
-          style={{ width: `${Math.max(2, progressPct)}%` }}
+          className="h-full rounded-full transition-all duration-300"
+          style={{
+            width: `${Math.max(2, progressPct)}%`,
+            backgroundColor:
+              task.status === 'completed'
+                ? '#10b981'
+                : progressPct >= 100
+                  ? '#f59e0b'
+                  : 'var(--accent)',
+          }}
         />
       </div>
     </li>

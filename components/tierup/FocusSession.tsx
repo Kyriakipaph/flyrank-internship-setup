@@ -12,10 +12,14 @@ function minutesToCakeTiers(minutes: number): number {
   return Math.min(6, Math.max(1, Math.round(minutes / 10)));
 }
 
-function bakingStatus(
-  elapsedSeconds: number,
-  targetMinutes: number,
-): string {
+function formatMS(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+}
+
+function bakingStatus(elapsedSeconds: number, targetMinutes: number): string {
   const targetSeconds = targetMinutes * 60;
   const cakeTargetTiers = minutesToCakeTiers(targetMinutes);
   const secondsPerTier = targetSeconds / cakeTargetTiers;
@@ -36,8 +40,12 @@ export default function FocusSession() {
     task,
     elapsedSeconds,
     isRunning,
+    isOnBreak,
+    breakSecondsRemaining,
+    canTakeBreak,
     startTask,
-    togglePause,
+    startBreak,
+    endBreak,
     exit: exitSession,
     complete,
     clear,
@@ -102,7 +110,7 @@ export default function FocusSession() {
         </p>
         <Link
           href="/tasks"
-          className="rounded-full bg-rose-500 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-600"
+          className="rounded-full bg-[color:var(--accent)] px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:brightness-110"
         >
           Go to my tasks
         </Link>
@@ -116,7 +124,7 @@ export default function FocusSession() {
         <p className="text-sm text-red-600">{loadError}</p>
         <Link
           href="/tasks"
-          className="rounded-full bg-rose-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-rose-600"
+          className="rounded-full bg-[color:var(--accent)] px-6 py-2.5 text-sm font-medium text-white hover:brightness-110"
         >
           Back to my tasks
         </Link>
@@ -144,7 +152,9 @@ export default function FocusSession() {
           <Cake
             elapsedSeconds={elapsedSeconds}
             targetMinutes={task.targetMinutes}
-            showBaking={isRunning}
+            vibe={task.vibe}
+            cakeType={task.cakeType}
+            showBaking={isRunning && !isOnBreak}
           />
         </div>
 
@@ -155,39 +165,66 @@ export default function FocusSession() {
           />
 
           <p className="text-xs italic text-stone-500">
-            {bakingStatus(elapsedSeconds, task.targetMinutes)}
+            {isOnBreak
+              ? 'On a break — the oven is resting'
+              : bakingStatus(elapsedSeconds, task.targetMinutes)}
           </p>
 
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={togglePause}
-              className="min-w-28 rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-stone-50"
-            >
-              {isRunning ? 'Pause' : 'Resume'}
-            </button>
-            <button
-              type="button"
-              onClick={handleExit}
-              className="min-w-28 rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-medium text-stone-600 shadow-sm hover:bg-stone-50"
-            >
-              Save & exit
-            </button>
-            <button
-              type="button"
-              onClick={() => setGiveUpConfirm(true)}
-              className="min-w-28 rounded-full border border-red-200 bg-white px-5 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50"
-            >
-              Give up
-            </button>
-            <button
-              type="button"
-              onClick={handleFinish}
-              className="min-w-28 rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
-            >
-              Done
-            </button>
-          </div>
+          {isOnBreak ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-3 text-center">
+                <p className="text-xs uppercase tracking-wider text-amber-700">
+                  Break ends in
+                </p>
+                <p
+                  className="text-3xl font-bold tabular-nums text-amber-800"
+                  style={{ fontFamily: 'var(--font-playfair), serif' }}
+                >
+                  {formatMS(breakSecondsRemaining)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={endBreak}
+                className="rounded-full bg-[color:var(--accent)] px-6 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110"
+              >
+                Back to focus
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={startBreak}
+                disabled={!canTakeBreak}
+                className="min-w-28 rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                title={canTakeBreak ? undefined : 'You already used your break for this session.'}
+              >
+                {canTakeBreak ? 'Take a break (5m)' : 'Break used'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExit}
+                className="min-w-28 rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-medium text-stone-600 shadow-sm hover:bg-stone-50"
+              >
+                Save & exit
+              </button>
+              <button
+                type="button"
+                onClick={() => setGiveUpConfirm(true)}
+                className="min-w-28 rounded-full border border-red-200 bg-white px-5 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50"
+              >
+                Give up
+              </button>
+              <button
+                type="button"
+                onClick={handleFinish}
+                className="min-w-28 rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+              >
+                Done
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

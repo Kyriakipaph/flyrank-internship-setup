@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display, Caveat } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import FocusMiniIndicator from "@/components/tierup/FocusMiniIndicator";
@@ -18,76 +18,59 @@ const geistMono = Geist_Mono({
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "TierUp",
-  description: "A focus timer that grows a cake while you work.",
+  title: "TierUp — a focus timer that bakes cakes",
+  description: "Set an intention, focus, and grow a beautiful cake.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <Providers>
-          <header className="border-b border-stone-200/70 bg-white/60 backdrop-blur">
-            <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-8">
+          <header
+            className="border-b bg-white/50 backdrop-blur"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-5 sm:px-8">
               <Link
                 href="/"
-                className="text-2xl font-semibold tracking-tight text-stone-900"
+                className="text-2xl font-medium tracking-tight text-stone-900"
                 style={{ fontFamily: 'var(--font-playfair), serif' }}
               >
                 TierUp
               </Link>
-              <ul className="flex items-center gap-1 text-sm text-stone-600 sm:gap-2">
-                <li>
-                  <Link
-                    href="/"
-                    className="rounded-full px-3 py-1.5 hover:bg-stone-100 hover:text-stone-900"
-                  >
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/tasks"
-                    className="rounded-full px-3 py-1.5 hover:bg-stone-100 hover:text-stone-900"
-                  >
-                    Tasks
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/focus"
-                    className="rounded-full px-3 py-1.5 hover:bg-stone-100 hover:text-stone-900"
-                  >
-                    Focus
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/kitchen"
-                    className="rounded-full px-3 py-1.5 hover:bg-stone-100 hover:text-stone-900"
-                  >
-                    Kitchen
-                  </Link>
-                </li>
-                <li>
+              <ul className="flex items-center gap-1 text-sm text-stone-600 sm:gap-3">
+                <NavLink href="/">Home</NavLink>
+                <NavLink href="/tasks">Tasks</NavLink>
+                <NavLink href="/focus">Focus</NavLink>
+                <NavLink href="/calendar">Calendar</NavLink>
+                <NavLink href="/kitchen">Kitchen</NavLink>
+                <li className="hidden sm:inline-block">
                   <Link
                     href="/playground"
-                    className="hidden rounded-full px-3 py-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 sm:inline-block"
+                    className="rounded-full px-3 py-1.5 text-stone-400 hover:text-stone-600"
                   >
                     Playground
                   </Link>
                 </li>
-                <li>
+                <li className="hidden sm:inline-block">
                   <Link
                     href="/health"
-                    className="hidden rounded-full px-3 py-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 sm:inline-block"
+                    className="rounded-full px-3 py-1.5 text-stone-400 hover:text-stone-600"
                   >
                     Health
                   </Link>
@@ -95,12 +78,25 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </ul>
             </nav>
           </header>
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-8 sm:py-12">
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-8 sm:py-14">
             {children}
           </main>
           <FocusMiniIndicator />
         </Providers>
       </body>
     </html>
+  );
+}
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="rounded-full px-3 py-1.5 transition-colors hover:bg-stone-100 hover:text-stone-900"
+      >
+        {children}
+      </Link>
+    </li>
   );
 }

@@ -16,40 +16,64 @@ import { db } from './firebase';
 
 const TASKS_COLLECTION = 'tasks';
 
+import type { VibeId } from './vibes';
+import type { CategoryId } from './categories';
+
 export type TaskStatus = 'unfinished' | 'completed';
+export type CakeType = 'cupcake' | 'cake' | 'tiered';
 
 export type Task = {
   id: string;
   name: string;
   totalSecondsFocused: number;
-  targetMinutes: number; // 1..6
+  targetMinutes: number;
+  vibe: VibeId;
+  cakeType: CakeType;
+  category: CategoryId;
   status: TaskStatus;
   createdAt: Date;
   completedAt?: Date;
+  dueDate?: Date;
 };
 
 type TaskDoc = {
   name: string;
   totalSecondsFocused: number;
-  targetMinutes?: number;
+  targetMinutes?: number; // LEGACY
+  targetMinutesV2?: number;
+  vibe?: VibeId;
+  cakeType?: CakeType;
+  category?: CategoryId;
   status: TaskStatus;
   createdAt: Timestamp | null;
   completedAt?: Timestamp | null;
+  dueDate?: Timestamp | null;
 };
 
 function toTask(id: string, data: TaskDoc): Task {
-  // Backwards compat: old tasks stored `targetTiers` (1-6) as the value.
-  // If we see a small number, assume it's an old tier count and convert.
-  const raw = data.targetMinutes ?? 30;
-  const targetMinutes = raw <= 6 ? raw * 10 : raw;
+  let targetMinutes: number;
+  if (typeof data.targetMinutesV2 === 'number') {
+    // Written by current code — always minutes, no migration
+    targetMinutes = data.targetMinutesV2;
+  } else if (typeof data.targetMinutes === 'number') {
+    // Legacy: values 1-6 were actually tier counts, convert to minutes
+    const raw = data.targetMinutes;
+    targetMinutes = raw <= 6 ? raw * 10 : raw;
+  } else {
+    targetMinutes = 30;
+  }
   return {
     id,
     name: data.name,
     totalSecondsFocused: data.totalSecondsFocused ?? 0,
     targetMinutes,
+    vibe: data.vibe ?? 'classic',
+    cakeType: data.cakeType ?? 'tiered',
+    category: data.category ?? 'other',
     status: data.status,
     createdAt: data.createdAt?.toDate() ?? new Date(),
     completedAt: data.completedAt?.toDate(),
+    dueDate: data.dueDate?.toDate(),
   };
 }
 
@@ -67,17 +91,28 @@ export async function findActiveTaskByName(name: string): Promise<Task | null> {
 }
 
 /** Create a new unfinished task. Returns the new id. */
-export async function createTask(
-  name: string,
-  targetMinutes: number = 30,
-): Promise<string> {
-  const ref = await addDoc(collection(db, TASKS_COLLECTION), {
-    name,
+export async function createTask(opts: {
+  name: string;
+  targetMinutes?: number;
+  cakeType?: CakeType;
+  vibe?: VibeId;
+  category?: CategoryId;
+  dueDate?: Date | null;
+}): Promise<string> {
+  const payload: Record<string, unknown> = {
+    name: opts.name,
     totalSecondsFocused: 0,
-    targetMinutes,
+    targetMinutesV2: opts.targetMinutes ?? 30,
+    cakeType: opts.cakeType ?? 'tiered',
+    vibe: opts.vibe ?? 'classic',
+    category: opts.category ?? 'other',
     status: 'unfinished',
     createdAt: serverTimestamp(),
-  });
+  };
+  if (opts.dueDate) {
+    payload.dueDate = Timestamp.fromDate(opts.dueDate);
+  }
+  const ref = await addDoc(collection(db, TASKS_COLLECTION), payload);
   return ref.id;
 }
 

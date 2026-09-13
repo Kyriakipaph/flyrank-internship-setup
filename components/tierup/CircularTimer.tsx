@@ -28,7 +28,7 @@ export default function CircularTimer({
   const dotX = 100 + radius * Math.cos(angle);
   const dotY = 100 + radius * Math.sin(angle);
 
-  const strokeColor = isBonus ? '#eab308' : '#f43f5e';
+  const strokeColor = isBonus ? '#eab308' : '#4b6b57';
 
   const centerLabel = isBonus
     ? `+${formatTime(bonusSeconds)}`
@@ -52,7 +52,7 @@ export default function CircularTimer({
           cy="100"
           r={radius}
           fill="none"
-          stroke="#ffe4e6"
+          stroke="#dee9df"
           strokeWidth="10"
         />
 

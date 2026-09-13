@@ -2,33 +2,59 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-[65vh] flex-col items-center justify-center gap-10 text-center">
-      <div className="text-sm font-medium uppercase tracking-[0.2em] text-rose-500">
-        A focus timer for people who bake
-      </div>
-
-      <h1
-        className="text-5xl font-semibold tracking-tight text-stone-900 sm:text-7xl"
-        style={{ fontFamily: 'var(--font-playfair), serif' }}
+    <div className="relative mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center gap-10 px-4 text-center">
+      {/* handwritten flourishes */}
+      <span
+        className="pointer-events-none absolute -top-2 right-2 rotate-[8deg] text-3xl sm:right-8 sm:text-4xl"
+        style={{ fontFamily: 'var(--font-caveat)', color: 'var(--accent)' }}
       >
-        Welcome back.
-      </h1>
+        you got this ♡
+      </span>
+      <span
+        className="pointer-events-none absolute bottom-8 left-2 -rotate-[6deg] text-2xl sm:left-6 sm:text-3xl"
+        style={{ fontFamily: 'var(--font-caveat)', color: 'var(--ink-muted)' }}
+      >
+        small steps, big progress
+      </span>
 
-      <p className="max-w-xl text-lg text-stone-600 sm:text-xl">
-        Pick a task, set your intention, and let a beautiful cake rise as you
-        focus. Small effort, sweet reward.
+      <p
+        className="text-[11px] font-medium uppercase tracking-[0.3em]"
+        style={{ color: 'var(--accent)' }}
+      >
+        A focus timer for people who bake
       </p>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+      <h1
+        className="text-5xl leading-[1.05] font-medium tracking-tight text-stone-900 sm:text-7xl md:text-8xl"
+        style={{ fontFamily: 'var(--font-playfair), serif' }}
+      >
+        Set an intention.
+        <br />
+        <em className="italic" style={{ color: 'var(--accent)' }}>
+          Bake a cake.
+        </em>
+      </h1>
+
+      <p
+        className="max-w-xl text-base leading-relaxed text-stone-600 sm:text-lg"
+        style={{ fontFamily: 'var(--font-playfair), serif' }}
+      >
+        A quieter focus timer. Choose a task, pick a shape, and let a small
+        edible reward rise as you work. Come back to a full kitchen.
+      </p>
+
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:gap-4">
         <Link
           href="/tasks"
-          className="rounded-full bg-rose-500 px-8 py-3.5 text-base font-medium text-white shadow-sm transition-colors hover:bg-rose-600"
+          className="rounded-full px-8 py-3.5 text-sm font-medium text-white shadow-sm transition-colors hover:brightness-110"
+          style={{ backgroundColor: 'var(--accent)' }}
         >
-          Go to my tasks
+          Start baking
         </Link>
         <Link
           href="/kitchen"
-          className="rounded-full border border-stone-300 bg-white px-8 py-3.5 text-base font-medium text-stone-800 shadow-sm transition-colors hover:bg-stone-50"
+          className="rounded-full border bg-white px-8 py-3.5 text-sm font-medium text-stone-800 shadow-sm transition-colors hover:bg-stone-50"
+          style={{ borderColor: 'var(--border-strong)' }}
         >
           Visit the kitchen
         </Link>

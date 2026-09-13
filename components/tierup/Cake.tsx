@@ -7,14 +7,11 @@ const BASE_WIDTH = 150;
 const WIDTH_STEP = 20;
 const PLATE_Y = 310;
 
-const TIER_COLORS = [
-  { body: '#fbcfe8', icing: '#ec4899', darker: '#f9a8d4' },
-  { body: '#fed7aa', icing: '#f97316', darker: '#fdba74' },
-  { body: '#fde68a', icing: '#eab308', darker: '#fcd34d' },
-  { body: '#bbf7d0', icing: '#22c55e', darker: '#86efac' },
-  { body: '#bae6fd', icing: '#0ea5e9', darker: '#7dd3fc' },
-  { body: '#ddd6fe', icing: '#8b5cf6', darker: '#c4b5fd' },
-];
+import { getVibe, type VibeId } from '@/lib/vibes';
+import type { CakeType } from '@/lib/tasks';
+import Cupcake from './Cupcake';
+import SingleCake from './SingleCake';
+import { DollopRow, Sprinkles, TierExtra, Topper } from './vibeElements';
 
 function minutesToCakeTiers(minutes: number): number {
   return Math.min(MAX_TIERS, Math.max(1, Math.round(minutes / 10)));
@@ -23,14 +20,62 @@ function minutesToCakeTiers(minutes: number): number {
 type CakeProps = {
   elapsedSeconds: number;
   targetMinutes: number;
+  vibe?: VibeId;
+  cakeType?: CakeType;
   showBaking?: boolean;
 };
 
 export default function Cake({
   elapsedSeconds,
   targetMinutes,
+  vibe = 'classic',
+  cakeType = 'tiered',
   showBaking = true,
 }: CakeProps) {
+  if (cakeType === 'cupcake') {
+    return (
+      <Cupcake
+        elapsedSeconds={elapsedSeconds}
+        targetMinutes={targetMinutes}
+        vibe={vibe}
+      />
+    );
+  }
+  if (cakeType === 'cake') {
+    return (
+      <SingleCake
+        elapsedSeconds={elapsedSeconds}
+        targetMinutes={targetMinutes}
+        vibe={vibe}
+      />
+    );
+  }
+  return (
+    <TieredCake
+      elapsedSeconds={elapsedSeconds}
+      targetMinutes={targetMinutes}
+      vibe={vibe}
+      showBaking={showBaking}
+    />
+  );
+}
+
+type TieredCakeProps = {
+  elapsedSeconds: number;
+  targetMinutes: number;
+  vibe?: VibeId;
+  showBaking?: boolean;
+};
+
+function TieredCake({
+  elapsedSeconds,
+  targetMinutes,
+  vibe = 'classic',
+  showBaking = true,
+}: TieredCakeProps) {
+  const vibeObj = getVibe(vibe);
+  const TIER_COLORS = vibeObj.tiers;
+  const vibeStyle = vibeObj.style;
   const cakeTargetTiers = minutesToCakeTiers(targetMinutes);
   const targetSeconds = targetMinutes * 60;
   const secondsPerTier = targetSeconds / cakeTargetTiers;
@@ -130,44 +175,24 @@ export default function Cake({
                 fill={colors.icing}
               />
 
-              {Array.from({ length: Math.max(3, Math.floor(width / 22)) }).map(
-                (_, k, arr) => {
-                  const spacing = (width - 20) / (arr.length - 1);
-                  return (
-                    <circle
-                      key={k}
-                      className="dollop-bounce"
-                      cx={x + 10 + k * spacing}
-                      cy={y - 2}
-                      r={3.5}
-                      fill={colors.icing}
-                      style={{ animationDelay: `${k * 0.15}s` }}
-                    />
-                  );
-                },
-              )}
+              <DollopRow
+                style={vibeStyle}
+                x={x}
+                y={y}
+                width={width}
+                color={colors.icing}
+              />
 
-              {['#fbbf24', '#a78bfa', '#22c55e', '#ec4899', '#3b82f6'].map(
-                (color, k, arr) => {
-                  const spacing = width / (arr.length + 1);
-                  const cx = x + spacing * (k + 1);
-                  const cy = y - 5;
-                  const angle = k * 40 - 60;
-                  return (
-                    <rect
-                      key={`sp-${k}`}
-                      className="sprinkle-twinkle"
-                      x={cx - 2}
-                      y={cy - 0.75}
-                      width="4"
-                      height="1.5"
-                      fill={color}
-                      transform={`rotate(${angle} ${cx} ${cy})`}
-                      style={{ animationDelay: `${k * 0.2}s` }}
-                    />
-                  );
-                },
-              )}
+              <Sprinkles style={vibeStyle} x={x} y={y} width={width} />
+
+              <TierExtra
+                style={vibeStyle}
+                x={x}
+                y={y}
+                width={width}
+                height={TIER_HEIGHT}
+                icingColor={colors.icing}
+              />
 
               {hasDrips && (
                 <>
@@ -199,16 +224,14 @@ export default function Cake({
                 </>
               )}
 
-              {/* Decoration 2: extra sprinkles */}
-              {decorationCount >= 2 && (
+              {/* Decoration 2: extra sprinkles when past target */}
+              {decorationCount >= 2 && vibeStyle.sprinkles !== 'none' && (
                 <g className="sprinkle-shimmer">
                   {[
                     { pct: 0.15, dy: -7, color: '#eab308', rot: 45 },
                     { pct: 0.35, dy: -9, color: '#8b5cf6', rot: -30 },
                     { pct: 0.55, dy: -8, color: '#22c55e', rot: 60 },
                     { pct: 0.75, dy: -6, color: '#0ea5e9', rot: -45 },
-                    { pct: 0.28, dy: 14, color: '#f97316', rot: -50 },
-                    { pct: 0.62, dy: 16, color: '#14b8a6', rot: -25 },
                   ].map((s, k) => {
                     const cx = x + width * s.pct;
                     const cy = y + s.dy;
@@ -228,17 +251,9 @@ export default function Cake({
                 </g>
               )}
 
-              {/* Decoration 1: cherry on top */}
+              {/* Decoration 1: vibe-specific topper on the very top tier */}
               {isTopTier && decorationCount >= 1 && (
-                <g className="cherry-wobble">
-                  <circle cx="100" cy={y - 8} r="5" fill="#dc2626" />
-                  <path
-                    d={`M 100 ${y - 13} Q 105 ${y - 20} 108 ${y - 22}`}
-                    stroke="#166534"
-                    strokeWidth="1.5"
-                    fill="none"
-                  />
-                </g>
+                <Topper kind={vibeStyle.topper} cx={100} cy={y - 10} />
               )}
             </g>
           );
