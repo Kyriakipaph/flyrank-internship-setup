@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cake from './Cake';
 import CircularTimer from './CircularTimer';
+import SessionCoach from './SessionCoach';
 import { useFocus } from '@/contexts/FocusContext';
 import { deleteTask, getTask } from '@/lib/tasks';
+import type { CoachRequest } from '@/lib/coach';
 
 function minutesToCakeTiers(minutes: number): number {
   return Math.min(6, Math.max(1, Math.round(minutes / 10)));
@@ -53,6 +55,7 @@ export default function FocusSession() {
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [giveUpConfirm, setGiveUpConfirm] = useState(false);
+  const [coachRequest, setCoachRequest] = useState<CoachRequest | null>(null);
 
   useEffect(() => {
     if (!taskId) return;
@@ -83,17 +86,58 @@ export default function FocusSession() {
   }
 
   async function handleFinish() {
+    if (!task) return;
+    const snapshot: CoachRequest = {
+      taskName: task.name,
+      category: task.category,
+      targetMinutes: task.targetMinutes,
+      elapsedMinutes: Math.max(0, Math.floor(elapsedSeconds / 60)),
+      completed: true,
+    };
     await complete();
-    router.push('/kitchen');
+    setCoachRequest(snapshot);
+  }
+
+  function handleCoachDismiss() {
+    const wasCompleted = coachRequest?.completed ?? false;
+    setCoachRequest(null);
+    router.push(wasCompleted ? '/kitchen' : '/tasks');
   }
 
   async function handleGiveUp() {
     if (!task) return;
+    const snapshot: CoachRequest = {
+      taskName: task.name,
+      category: task.category,
+      targetMinutes: task.targetMinutes,
+      elapsedMinutes: Math.max(0, Math.floor(elapsedSeconds / 60)),
+      completed: false,
+    };
     try {
       await deleteTask(task.id);
     } catch {}
     clear();
-    router.push('/tasks');
+    setGiveUpConfirm(false);
+    setCoachRequest(snapshot);
+  }
+
+  // Show the coach in its own minimal screen after completion. Rendered before
+  // other guards so it survives the task-cleared-by-complete() state.
+  if (coachRequest) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16 text-center">
+        <p
+          className="text-3xl"
+          style={{ fontFamily: 'var(--font-playfair), serif', color: 'var(--ink)' }}
+        >
+          Session complete
+        </p>
+        <p className="text-sm" style={{ color: 'var(--ink-muted)' }}>
+          Your cake is heading to the kitchen…
+        </p>
+        <SessionCoach request={coachRequest} onDismiss={handleCoachDismiss} />
+      </div>
+    );
   }
 
   if (!taskId && !task) {
