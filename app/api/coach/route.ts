@@ -100,11 +100,11 @@ export async function POST(request: NextRequest) {
           max_tokens: 400,
           temperature: 0.7,
           stream: true,
-          // gpt-oss models are "reasoning" models on Groq; keep the thinking
-          // budget low so visible content actually shows up.
-          reasoning_effort: 'low',
           messages: [{ role: 'user', content: buildPrompt(req) }],
-        } as Parameters<typeof client.chat.completions.create>[0]);
+          // gpt-oss models are reasoning models; keep thinking budget low
+          // so visible content shows up.
+          reasoning_effort: 'low',
+        });
 
         for await (const chunk of completion) {
           const delta = chunk.choices[0]?.delta?.content ?? '';
