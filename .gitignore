@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# lighthouse raw output (keep the HTML + AUDIT.md, drop the JSON)
+lighthouse-report.json
+lighthouse-mobile.json

@@ -63,7 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <li className="hidden sm:inline-block">
                   <Link
                     href="/playground"
-                    className="rounded-full px-3 py-1.5 text-stone-400 hover:text-stone-600"
+                    className="rounded-full px-3 py-1.5 text-stone-600 hover:text-stone-900"
                   >
                     Playground
                   </Link>
@@ -71,7 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <li className="hidden sm:inline-block">
                   <Link
                     href="/health"
-                    className="rounded-full px-3 py-1.5 text-stone-400 hover:text-stone-600"
+                    className="rounded-full px-3 py-1.5 text-stone-600 hover:text-stone-900"
                   >
                     Health
                   </Link>
