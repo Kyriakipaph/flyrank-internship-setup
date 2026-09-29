@@ -134,13 +134,6 @@ export default function CalendarPage() {
       >
         one day at a time ♡
       </span>
-      {/* handwritten flourish bottom-left (fills dead space) */}
-      <span
-        className="pointer-events-none absolute bottom-4 left-2 hidden -rotate-[6deg] text-2xl sm:left-2 sm:block"
-        style={{ fontFamily: 'var(--font-caveat)', color: 'var(--ink-muted)' }}
-      >
-        plan gently
-      </span>
 
       <header className="flex items-center justify-between">
         <div>
