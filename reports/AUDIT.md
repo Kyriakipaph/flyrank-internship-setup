@@ -6,12 +6,12 @@ category).
 
 ## Scores
 
-### Desktop (before fix)
+### Desktop (final, after fix)
 
 | Category | Score | Threshold | Pass |
 |---|---|---|---|
 | Performance | **100** | ≥85 | ✅ |
-| Accessibility | **95** | ≥85 (WCAG 2.1 AA) | ✅ but with 1 finding |
+| Accessibility | **100** | ≥85 (WCAG 2.1 AA) | ✅ (was 95 before fix) |
 | Best practices | **100** | — | ✅ |
 | SEO | **100** | — | ✅ |
 
@@ -52,8 +52,8 @@ Changed both links from `text-stone-400 hover:text-stone-600` to
 - **Hover:** darkened to `#1c1917` (stone-900) so the affordance still reads
   correctly for keyboard users tabbing through
 
-After the fix redeployed, the desktop accessibility score goes to **100** with
-zero WCAG AA violations.
+After the fix redeployed, the desktop accessibility score reached **100** with
+zero WCAG AA violations (confirmed by re-running Lighthouse on the live site).
 
 ## Non-blocking recommendations (not fixed for this submission)
 
