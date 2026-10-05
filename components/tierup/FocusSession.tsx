@@ -263,7 +263,8 @@ export default function FocusSession() {
               <button
                 type="button"
                 onClick={handleFinish}
-                className="min-w-28 rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+                className="min-w-28 rounded-full px-5 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110"
+                style={{ backgroundColor: 'var(--accent)' }}
               >
                 Done
               </button>

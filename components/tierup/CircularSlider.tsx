@@ -94,7 +94,7 @@ export default function CircularSlider({
           cy={centerY}
           r={radius}
           fill="none"
-          stroke="#dee9df"
+          stroke="var(--accent-soft)"
           strokeWidth="10"
         />
         <circle
@@ -102,7 +102,7 @@ export default function CircularSlider({
           cy={centerY}
           r={radius}
           fill="none"
-          stroke="#4b6b57"
+          stroke="var(--accent)"
           strokeWidth="10"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -119,10 +119,10 @@ export default function CircularSlider({
           cx={dotX}
           cy={dotY}
           r="14"
-          fill="#4b6b57"
+          fill="var(--accent)"
           style={{
             transition: dragging ? 'none' : 'cx 0.15s ease-out, cy 0.15s ease-out',
-            filter: 'drop-shadow(0 2px 4px rgba(75, 107, 87, 0.4))',
+            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
           }}
         />
         <circle
@@ -141,7 +141,7 @@ export default function CircularSlider({
           className="text-5xl font-bold tabular-nums"
           style={{
             fontFamily: 'var(--font-playfair), serif',
-            color: '#4b6b57',
+            color: 'var(--accent)',
           }}
         >
           {value}
