@@ -14,6 +14,7 @@ import { completeTask, updateTaskTime, type Task } from '@/lib/tasks';
 const AUTOSAVE_INTERVAL_SECONDS = 15;
 const BREAK_DURATION_SECONDS = 5 * 60; // 5 minutes
 const MAX_BREAKS_PER_SESSION = 1;
+const STORAGE_KEY = 'tierup:session';
 
 type FocusContextValue = {
   task: Task | null;
@@ -40,120 +41,256 @@ export function useFocus(): FocusContextValue {
   return ctx;
 }
 
+/**
+ * Persisted session shape. All times are absolute ms timestamps so the elapsed
+ * value survives tab-close, reload, and background throttling.
+ */
+type PersistedSession = {
+  task: Task;
+  // When the current RUNNING span started. null while on break or stopped.
+  spanStartedAt: number | null;
+  // Seconds accumulated BEFORE the current running span started.
+  accumulated: number;
+  isOnBreak: boolean;
+  // Absolute end time of the current break (ms). null when not on break.
+  breakEndsAt: number | null;
+  breaksTaken: number;
+};
+
+function readSession(): PersistedSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedSession & {
+      task: Task & {
+        createdAt: string;
+        completedAt?: string;
+        dueDate?: string;
+      };
+    };
+    // Revive Date fields on the serialized Task.
+    const task: Task = {
+      ...parsed.task,
+      createdAt: new Date(parsed.task.createdAt),
+      completedAt: parsed.task.completedAt
+        ? new Date(parsed.task.completedAt)
+        : undefined,
+      dueDate: parsed.task.dueDate ? new Date(parsed.task.dueDate) : undefined,
+    };
+    return { ...parsed, task };
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(session: PersistedSession | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (session === null) {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    }
+  } catch {
+    // storage disabled; session simply won't survive reload
+  }
+}
+
+/**
+ * Convert accumulated + current span start into total elapsed seconds.
+ * Treats "paused" (no spanStartedAt) as just the accumulated value.
+ */
+function computeElapsed(
+  accumulated: number,
+  spanStartedAt: number | null,
+  now: number,
+): number {
+  if (spanStartedAt === null) return accumulated;
+  return accumulated + Math.max(0, (now - spanStartedAt) / 1000);
+}
+
 export function FocusProvider({ children }: { children: ReactNode }) {
   const [task, setTask] = useState<Task | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
+  const [spanStartedAt, setSpanStartedAt] = useState<number | null>(null);
+  const [accumulated, setAccumulated] = useState(0);
   const [isOnBreak, setIsOnBreak] = useState(false);
-  const [breakSecondsRemaining, setBreakSecondsRemaining] = useState(0);
+  const [breakEndsAt, setBreakEndsAt] = useState<number | null>(null);
   const [breaksTaken, setBreaksTaken] = useState(0);
+  // A monotonically-increasing tick that re-renders consumers once per second
+  // so elapsed/break-remaining stay fresh even though they derive from Date.now().
+  const [, setTick] = useState(0);
 
-  const elapsedRef = useRef(0);
   const lastSavedRef = useRef(0);
 
-  useEffect(() => {
-    elapsedRef.current = elapsedSeconds;
-  }, [elapsedSeconds]);
+  const isRunning = spanStartedAt !== null && !isOnBreak;
 
-  // Focus timer — only ticks when running and NOT on break
-  useEffect(() => {
-    if (!isRunning || isOnBreak) return;
-    const id = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isRunning, isOnBreak]);
+  // Snapshot current session for persistence.
+  const persistCurrent = useCallback(
+    (overrides?: Partial<PersistedSession>) => {
+      if (!task) {
+        writeSession(null);
+        return;
+      }
+      const snapshot: PersistedSession = {
+        task,
+        spanStartedAt,
+        accumulated,
+        isOnBreak,
+        breakEndsAt,
+        breaksTaken,
+        ...overrides,
+      };
+      writeSession(snapshot);
+    },
+    [task, spanStartedAt, accumulated, isOnBreak, breakEndsAt, breaksTaken],
+  );
 
-  // Break countdown
+  // Restore any persisted session on mount.
   useEffect(() => {
-    if (!isOnBreak) return;
-    const id = setInterval(() => {
-      setBreakSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          setIsOnBreak(false);
-          setIsRunning(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isOnBreak]);
+    const saved = readSession();
+    if (!saved) return;
+    const now = Date.now();
 
-  // Autosave
-  useEffect(() => {
-    if (!isRunning || isOnBreak || !task) return;
-    if (elapsedSeconds - lastSavedRef.current >= AUTOSAVE_INTERVAL_SECONDS) {
-      lastSavedRef.current = elapsedSeconds;
-      void updateTaskTime(task.id, elapsedSeconds).catch(() => {});
+    // If the break has already elapsed while the tab was closed, auto-resume.
+    if (saved.isOnBreak && saved.breakEndsAt !== null && now >= saved.breakEndsAt) {
+      setTask(saved.task);
+      setAccumulated(saved.accumulated);
+      setIsOnBreak(false);
+      setBreakEndsAt(null);
+      setBreaksTaken(saved.breaksTaken);
+      setSpanStartedAt(now);
+      return;
     }
-  }, [elapsedSeconds, isRunning, isOnBreak, task]);
+
+    setTask(saved.task);
+    setAccumulated(saved.accumulated);
+    setIsOnBreak(saved.isOnBreak);
+    setBreakEndsAt(saved.breakEndsAt);
+    setBreaksTaken(saved.breaksTaken);
+    setSpanStartedAt(saved.spanStartedAt);
+  }, []);
+
+  // Persist whenever durable state changes.
+  useEffect(() => {
+    if (!task) return;
+    persistCurrent();
+  }, [task, spanStartedAt, accumulated, isOnBreak, breakEndsAt, breaksTaken, persistCurrent]);
+
+  // Heartbeat: re-render ~1Hz so the derived elapsed value refreshes on screen.
+  // The underlying truth is Date.now(), not this tick.
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // End-of-break auto-resume while the tab is actually open.
+  useEffect(() => {
+    if (!isOnBreak || breakEndsAt === null) return;
+    const now = Date.now();
+    if (now >= breakEndsAt) {
+      setIsOnBreak(false);
+      setBreakEndsAt(null);
+      setSpanStartedAt(Date.now());
+      return;
+    }
+    const remainingMs = breakEndsAt - now;
+    const id = setTimeout(() => {
+      setIsOnBreak(false);
+      setBreakEndsAt(null);
+      setSpanStartedAt(Date.now());
+    }, remainingMs);
+    return () => clearTimeout(id);
+  }, [isOnBreak, breakEndsAt]);
+
+  // Autosave the accumulated elapsed back to Firestore every ~15s.
+  const elapsedForAutosave = computeElapsed(accumulated, spanStartedAt, Date.now());
+  useEffect(() => {
+    if (!task || !isRunning) return;
+    const seconds = Math.floor(elapsedForAutosave);
+    if (seconds - lastSavedRef.current >= AUTOSAVE_INTERVAL_SECONDS) {
+      lastSavedRef.current = seconds;
+      void updateTaskTime(task.id, seconds).catch(() => {});
+    }
+  }, [task, isRunning, elapsedForAutosave]);
 
   const startTask = useCallback((t: Task) => {
     setTask(t);
-    setElapsedSeconds(t.totalSecondsFocused);
+    setAccumulated(t.totalSecondsFocused);
     lastSavedRef.current = t.totalSecondsFocused;
-    setIsRunning(true);
     setIsOnBreak(false);
-    setBreakSecondsRemaining(0);
+    setBreakEndsAt(null);
     setBreaksTaken(0);
+    setSpanStartedAt(Date.now());
   }, []);
 
   const clear = useCallback(() => {
     setTask(null);
-    setElapsedSeconds(0);
-    setIsRunning(false);
+    setSpanStartedAt(null);
+    setAccumulated(0);
     setIsOnBreak(false);
-    setBreakSecondsRemaining(0);
+    setBreakEndsAt(null);
     setBreaksTaken(0);
     lastSavedRef.current = 0;
+    writeSession(null);
   }, []);
 
   const startBreak = useCallback(() => {
     if (breaksTaken >= MAX_BREAKS_PER_SESSION) return;
+    const now = Date.now();
+    const elapsedNow = computeElapsed(accumulated, spanStartedAt, now);
     if (task) {
-      void updateTaskTime(task.id, elapsedRef.current);
-      lastSavedRef.current = elapsedRef.current;
+      void updateTaskTime(task.id, Math.floor(elapsedNow)).catch(() => {});
+      lastSavedRef.current = Math.floor(elapsedNow);
     }
+    setAccumulated(elapsedNow);
+    setSpanStartedAt(null);
     setBreaksTaken((n) => n + 1);
-    setIsRunning(false);
     setIsOnBreak(true);
-    setBreakSecondsRemaining(BREAK_DURATION_SECONDS);
-  }, [task, breaksTaken]);
+    setBreakEndsAt(now + BREAK_DURATION_SECONDS * 1000);
+  }, [accumulated, spanStartedAt, task, breaksTaken]);
 
   const endBreak = useCallback(() => {
     setIsOnBreak(false);
-    setBreakSecondsRemaining(0);
-    setIsRunning(true);
+    setBreakEndsAt(null);
+    setSpanStartedAt(Date.now());
   }, []);
 
   const exit = useCallback(async () => {
-    setIsRunning(false);
-    setIsOnBreak(false);
-    setBreakSecondsRemaining(0);
     const current = task;
-    const time = elapsedRef.current;
+    const elapsedNow = computeElapsed(accumulated, spanStartedAt, Date.now());
+    setSpanStartedAt(null);
+    setIsOnBreak(false);
+    setBreakEndsAt(null);
     if (current) {
       try {
-        await updateTaskTime(current.id, time);
+        await updateTaskTime(current.id, Math.floor(elapsedNow));
       } catch {}
     }
     clear();
-  }, [task, clear]);
+  }, [task, accumulated, spanStartedAt, clear]);
 
   const complete = useCallback(async () => {
-    setIsRunning(false);
-    setIsOnBreak(false);
-    setBreakSecondsRemaining(0);
     const current = task;
-    const time = elapsedRef.current;
+    const elapsedNow = computeElapsed(accumulated, spanStartedAt, Date.now());
+    setSpanStartedAt(null);
+    setIsOnBreak(false);
+    setBreakEndsAt(null);
     if (current) {
       try {
-        await completeTask(current.id, time);
+        await completeTask(current.id, Math.floor(elapsedNow));
       } catch {}
     }
     clear();
-  }, [task, clear]);
+  }, [task, accumulated, spanStartedAt, clear]);
+
+  // Final derived values at render time.
+  const now = Date.now();
+  const elapsedSeconds = Math.floor(computeElapsed(accumulated, spanStartedAt, now));
+  const breakSecondsRemaining =
+    isOnBreak && breakEndsAt !== null
+      ? Math.max(0, Math.ceil((breakEndsAt - now) / 1000))
+      : 0;
 
   return (
     <FocusContext.Provider

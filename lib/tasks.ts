@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
   Timestamp,
@@ -13,6 +12,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { getUserId } from './user';
 
 const TASKS_COLLECTION = 'tasks';
 
@@ -48,6 +48,7 @@ type TaskDoc = {
   createdAt: Timestamp | null;
   completedAt?: Timestamp | null;
   dueDate?: Timestamp | null;
+  userId?: string;
 };
 
 function toTask(id: string, data: TaskDoc): Task {
@@ -77,10 +78,13 @@ function toTask(id: string, data: TaskDoc): Task {
   };
 }
 
-/** Find an existing unfinished task with this exact name. */
+/** Find an existing unfinished task with this exact name (scoped to this user). */
 export async function findActiveTaskByName(name: string): Promise<Task | null> {
+  const userId = getUserId();
+  if (!userId) return null;
   const q = query(
     collection(db, TASKS_COLLECTION),
+    where('userId', '==', userId),
     where('name', '==', name),
     where('status', '==', 'unfinished'),
   );
@@ -90,7 +94,7 @@ export async function findActiveTaskByName(name: string): Promise<Task | null> {
   return toTask(doc.id, doc.data() as TaskDoc);
 }
 
-/** Create a new unfinished task. Returns the new id. */
+/** Create a new unfinished task scoped to the current browser user. Returns the new id. */
 export async function createTask(opts: {
   name: string;
   targetMinutes?: number;
@@ -99,6 +103,8 @@ export async function createTask(opts: {
   category?: CategoryId;
   dueDate?: Date | null;
 }): Promise<string> {
+  const userId = getUserId();
+  if (!userId) throw new Error('Cannot create a task without a user session.');
   const payload: Record<string, unknown> = {
     name: opts.name,
     totalSecondsFocused: 0,
@@ -108,6 +114,7 @@ export async function createTask(opts: {
     category: opts.category ?? 'other',
     status: 'unfinished',
     createdAt: serverTimestamp(),
+    userId,
   };
   if (opts.dueDate) {
     payload.dueDate = Timestamp.fromDate(opts.dueDate);
@@ -145,12 +152,17 @@ export async function getTask(id: string): Promise<Task | null> {
 }
 
 export async function getTasks(): Promise<Task[]> {
+  const userId = getUserId();
+  if (!userId) return [];
   const q = query(
     collection(db, TASKS_COLLECTION),
-    orderBy('createdAt', 'desc'),
+    where('userId', '==', userId),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => toTask(d.id, d.data() as TaskDoc));
+  // Sort newest-first in memory so we don't need a composite Firestore index.
+  const tasks = snap.docs.map((d) => toTask(d.id, d.data() as TaskDoc));
+  tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return tasks;
 }
 
 export async function deleteTask(id: string): Promise<void> {

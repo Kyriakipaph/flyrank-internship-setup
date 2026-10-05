@@ -97,11 +97,11 @@ The app never crashes on AI failure.
 
 ## Known limitations & future improvements
 
-- **No auth.** Firestore rules are open; anyone visiting the app sees the
-  same shared task list. Fine for a personal demo, not for real users.
+- **No real auth.** Users are identified by a random id in their browser
+  (localStorage). It's enough to keep each visitor's tasks separate, but
+  there's no sign-in — clearing browser storage loses access to that
+  task list.
 - **No task editing.** Tasks can be created and deleted but not renamed.
-- **Session state is client-only.** If the tab closes mid-session, up to
-  15 s of unsaved focus time can be lost.
 - **Same model for both AI features.** The planner would benefit from a
   stronger model on longer/ambiguous goals.
 - **No PWA install manifest.** Responsive but not installable to a home
